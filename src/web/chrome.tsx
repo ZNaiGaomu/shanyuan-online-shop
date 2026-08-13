@@ -95,7 +95,7 @@ export function LiveBar() {
   if (boot?.me?.kind !== "admin") return null;
   return (
     <div className="live-bar">
-      <span>{editMode ? "摆货中 · 顾客看不到这些按钮" : "用户视角 · 和顾客看到的一样"}</span>
+      <span>{editMode ? "摆货中 · 按住货品拖动换位 / 换架" : "用户视角 · 和顾客看到的一样"}</span>
       <button type="button" onClick={() => setEditMode(!editMode)}>
         {editMode ? "退出摆货" : "开始摆货"}
       </button>

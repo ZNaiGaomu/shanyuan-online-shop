@@ -7,7 +7,7 @@ import type { Category } from "./types";
 import { FilePick } from "./upload";
 
 function AdminShell({ children, tab }: { children: ReactNode; tab: string }) {
-  const { boot, loading, setEditMode } = useStore();
+  const { boot, loading, setEditMode, refresh } = useStore();
   const nav = useNavigate();
   if (loading)
     return (
@@ -23,12 +23,21 @@ function AdminShell({ children, tab }: { children: ReactNode; tab: string }) {
     nav("/shop");
   }
 
+  async function logout() {
+    await api.logout();
+    await refresh();
+    nav("/");
+  }
+
   return (
     <div className="app-shell">
       <header className="topbar">
         <div className="brand">
           <div className="brand-mark">管</div>
           <h1>店铺后台</h1>
+          <button type="button" className="logout-inline" onClick={() => void logout()}>
+            退出登录
+          </button>
         </div>
         <button className="icon-btn" title="用户视角" onClick={() => goLive(true)}>
           看

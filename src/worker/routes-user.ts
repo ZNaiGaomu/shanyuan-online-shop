@@ -78,6 +78,7 @@ userRoutes.post("/profile", async (c) => {
     username?: string;
     avatarKey?: string;
     password?: string;
+    oldPassword?: string;
   }>(c);
   const user = await c.env.DB
     .prepare("SELECT * FROM users WHERE id = ?")
@@ -100,6 +101,10 @@ userRoutes.post("/profile", async (c) => {
   const avatarKey = body.avatarKey === undefined ? user.avatar_key : body.avatarKey || null;
   let hash = user.password_hash;
   if (body.password) {
+    if (!body.oldPassword) return c.json({ ok: false, error: "改密码请先填写旧密码" }, 400);
+    if (!(await verifyPassword(body.oldPassword, user.password_hash))) {
+      return c.json({ ok: false, error: "旧密码不对" }, 400);
+    }
     if (body.password.length < 6) return c.json({ ok: false, error: "新密码至少 6 位" }, 400);
     hash = await hashPassword(body.password);
   }

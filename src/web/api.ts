@@ -55,6 +55,8 @@ export const api = {
   saveProduct: (id: number, body: Record<string, unknown>) =>
     request<void>(`/api/admin/products/${id}`, { method: "PUT", body: JSON.stringify(body) }),
   delProduct: (id: number) => request<void>(`/api/admin/products/${id}`, { method: "DELETE" }),
+  saveLayout: (items: { id: number; categoryId: number; sort: number }[]) =>
+    request<void>("/api/admin/layout", { method: "PUT", body: JSON.stringify({ items }) }),
   users: () =>
     request<{ id: number; username: string; nickname: string | null; created_at: string; cart_count: number }[]>(
       "/api/admin/users",

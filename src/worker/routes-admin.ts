@@ -140,6 +140,33 @@ adminRoutes.post("/products", async (c) => {
   return c.json({ ok: true, data: { id: productId } });
 });
 
+adminRoutes.put("/layout", async (c) => {
+  const body = await readBody<{ items?: { id?: number; categoryId?: number; sort?: number }[] }>(c);
+  const items = body.items || [];
+  if (!items.length) return c.json({ ok: false, error: "没有摆放数据" }, 400);
+  if (items.length > 500) return c.json({ ok: false, error: "一次摆放太多了" }, 400);
+
+  const cats = await c.env.DB.prepare("SELECT id FROM categories").all<{ id: number }>();
+  const catSet = new Set((cats.results ?? []).map((row) => Number(row.id)));
+  const products = await c.env.DB.prepare("SELECT id FROM products").all<{ id: number }>();
+  const productSet = new Set((products.results ?? []).map((row) => Number(row.id)));
+
+  const stmts = [];
+  for (const item of items) {
+    const id = Number(item.id);
+    const categoryId = Number(item.categoryId);
+    const sort = Math.round(Number(item.sort));
+    if (!productSet.has(id)) return c.json({ ok: false, error: "商品不存在" }, 400);
+    if (!catSet.has(categoryId)) return c.json({ ok: false, error: "分类不存在" }, 400);
+    if (!Number.isFinite(sort)) return c.json({ ok: false, error: "排序无效" }, 400);
+    stmts.push(
+      c.env.DB.prepare("UPDATE products SET category_id = ?, sort = ? WHERE id = ?").bind(categoryId, sort, id),
+    );
+  }
+  await c.env.DB.batch(stmts);
+  return c.json({ ok: true });
+});
+
 adminRoutes.put("/products/:id", async (c) => {
   const id = Number(c.req.param("id"));
   const exists = await c.env.DB.prepare("SELECT id FROM products WHERE id = ?").bind(id).first();

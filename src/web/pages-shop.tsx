@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type HTMLAttributes } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { ArrangeGhost, ArrangeHint, sortProducts, useArrange } from "./arrange";
 import { api } from "./api";
 import { ContactSheet, LiveBar, ShopChrome } from "./chrome";
 import { ProductEditorSheet } from "./product-editor";
@@ -22,25 +23,48 @@ export function SearchBar({ onSubmit }: { onSubmit: (q: string) => void }) {
   );
 }
 
-export function ProductCard({ product }: { product: Product }) {
+export function ProductCard({
+  product,
+  bind,
+}: {
+  product: Product;
+  bind?: HTMLAttributes<HTMLDivElement>;
+}) {
   const { editMode, openEditor } = useStore();
   const first = product.prices[0];
+  const body = (
+    <>
+      {product.coverUrl ? (
+        <img src={product.coverUrl} alt="" draggable={false} onDragStart={(e) => e.preventDefault()} />
+      ) : (
+        <div className="cover-ph" />
+      )}
+      <span className="name">
+        {product.name}
+        {!product.onSale && <span className="badge">未上架</span>}
+      </span>
+      {first && <div className="price">{formatPrice(first.amount, first.qty, first.unit)}</div>}
+    </>
+  );
   return (
-    <div className="card-wrap">
-      <Link className="prod-card" to={`/shop/p/${product.id}`}>
-        {product.coverUrl ? <img src={product.coverUrl} alt="" /> : <div className="cover-ph" />}
-        <span className="name">
-          {product.name}
-          {!product.onSale && <span className="badge">未上架</span>}
-        </span>
-        {first && <div className="price">{formatPrice(first.amount, first.qty, first.unit)}</div>}
-      </Link>
+    <div {...(bind || { className: "card-wrap" })}>
+      {editMode ? (
+        <div className="prod-card">{body}</div>
+      ) : (
+        <Link className="prod-card" to={`/shop/p/${product.id}`}>
+          {body}
+        </Link>
+      )}
+      {editMode && <span className="live-drag">拖</span>}
       {editMode && (
         <button
           type="button"
           className="live-pen"
+          onPointerDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.preventDefault();
+            e.stopPropagation();
             openEditor(product.id);
           }}
         >
@@ -76,6 +100,7 @@ function Banner({ urls }: { urls: string[] }) {
 export function HomePage() {
   const { boot, editMode, openEditor } = useStore();
   const nav = useNavigate();
+  const arrange = useArrange();
   if (!boot)
     return (
       <ShopChrome>
@@ -86,7 +111,7 @@ export function HomePage() {
     .filter((c) => c.visible || boot.preview)
     .map((cat) => ({
       cat,
-      items: boot.products.filter((p) => p.categoryId === cat.id),
+      items: sortProducts(boot.products.filter((p) => Number(p.categoryId) === Number(cat.id))),
     }))
     .filter((g) => g.items.length || editMode);
 
@@ -105,21 +130,31 @@ export function HomePage() {
         {boot.categories
           .filter((c) => c.visible || boot.preview)
           .map((cat) => (
-            <Link className="cat-item" key={cat.id} to={`/shop/cats/${cat.id}`}>
-              {cat.iconUrl ? <img src={cat.iconUrl} alt="" /> : <div className="cat-fallback">{cat.name.slice(0, 1)}</div>}
+            <Link
+              key={cat.id}
+              to={`/shop/cats/${cat.id}`}
+              draggable={false}
+              {...arrange.bindShelf(cat.id, "cat-item")}
+            >
+              {cat.iconUrl ? (
+                <img src={cat.iconUrl} alt="" draggable={false} onDragStart={(e) => e.preventDefault()} />
+              ) : (
+                <div className="cat-fallback">{cat.name.slice(0, 1)}</div>
+              )}
               <span>{cat.name}</span>
             </Link>
           ))}
       </div>
+      <ArrangeHint err={arrange.err} />
       {grouped.map(({ cat, items }) => (
-        <section key={cat.id}>
+        <section key={cat.id} {...arrange.bindShelf(cat.id, "arrange-shelf")}>
           <div className="section-title">— {cat.name} —</div>
           <div className="prod-grid">
             {items.map((p) => (
-              <ProductCard key={p.id} product={p} />
+              <ProductCard key={p.id} product={p} bind={arrange.bindProduct(p)} />
             ))}
             {editMode && (
-              <button type="button" className="live-add" onClick={() => openEditor("new")}>
+              <button type="button" {...arrange.bindShelf(cat.id, "live-add")} onClick={() => openEditor("new")}>
                 + 上新货
               </button>
             )}
@@ -138,6 +173,7 @@ export function HomePage() {
         </div>
       )}
       <div style={{ height: 24 }} />
+      <ArrangeGhost ghost={arrange.ghost} />
     </ShopChrome>
   );
 }
@@ -165,21 +201,40 @@ export function CatsPage() {
 export function CatListPage() {
   const { id } = useParams();
   const { boot, editMode, openEditor } = useStore();
+  const arrange = useArrange();
   const cat = boot?.categories.find((c) => String(c.id) === id);
-  const items = (boot?.products || []).filter((p) => String(p.categoryId) === id);
+  const items = sortProducts((boot?.products || []).filter((p) => String(p.categoryId) === id));
   return (
     <ShopChrome title={cat?.name || "分类"}>
-      <div className="prod-grid" style={{ paddingTop: 8, paddingBottom: 24 }}>
+      {editMode && cat && (
+        <div className="cat-grid" style={{ paddingTop: 8 }}>
+          {(boot?.categories || [])
+            .filter((c) => c.visible || boot?.preview)
+            .map((item) => (
+              <div key={item.id} {...arrange.bindShelf(item.id, "cat-item")}>
+                {item.iconUrl ? (
+                  <img src={item.iconUrl} alt="" draggable={false} onDragStart={(e) => e.preventDefault()} />
+                ) : (
+                  <div className="cat-fallback">{item.name.slice(0, 1)}</div>
+                )}
+                <span>{item.name}</span>
+              </div>
+            ))}
+        </div>
+      )}
+      <ArrangeHint err={arrange.err} />
+      <div style={{ paddingTop: 8, paddingBottom: 24 }} {...(cat ? arrange.bindShelf(cat.id, "prod-grid") : { className: "prod-grid" })}>
         {items.map((p) => (
-          <ProductCard key={p.id} product={p} />
+          <ProductCard key={p.id} product={p} bind={arrange.bindProduct(p)} />
         ))}
-        {editMode && (
-          <button type="button" className="live-add" onClick={() => openEditor("new")}>
+        {editMode && cat && (
+          <button type="button" {...arrange.bindShelf(cat.id, "live-add")} onClick={() => openEditor("new")}>
             + 上新货
           </button>
         )}
       </div>
       {!items.length && !editMode && <div className="empty">这个分类还没有商品</div>}
+      <ArrangeGhost ghost={arrange.ghost} />
     </ShopChrome>
   );
 }

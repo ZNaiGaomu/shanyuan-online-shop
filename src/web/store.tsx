@@ -1,6 +1,6 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { api } from "./api";
-import type { Bootstrap, CartItem, EditorTarget } from "./types";
+import type { Bootstrap, CartItem, EditorTarget, Product } from "./types";
 
 const EDIT_KEY = "sy_edit";
 
@@ -19,6 +19,7 @@ type Store = {
   setEditMode: (on: boolean) => void;
   openEditor: (id: number | "new") => void;
   closeEditor: () => void;
+  applyLayout: (items: { id: number; categoryId: number; sort: number }[]) => void;
 };
 
 const Ctx = createContext<Store | null>(null);
@@ -32,11 +33,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [editMode, setEditModeState] = useState(() => sessionStorage.getItem(EDIT_KEY) === "1");
   const [editorTarget, setEditorTarget] = useState<EditorTarget>(null);
 
-  async function refresh() {
+  const refresh = useCallback(async () => {
     const res = await api.bootstrap();
     if (res.ok) setBoot(res.data);
     setLoading(false);
-  }
+  }, []);
+
+  const applyLayout = useCallback((items: { id: number; categoryId: number; sort: number }[]) => {
+    setBoot((cur) => {
+      if (!cur) return cur;
+      const map = new Map(items.map((item) => [item.id, item]));
+      const products: Product[] = cur.products
+        .map((p) => {
+          const next = map.get(p.id);
+          return next ? { ...p, categoryId: next.categoryId, sort: next.sort } : p;
+        })
+        .sort((a, b) => a.sort - b.sort || a.id - b.id);
+      return { ...cur, products };
+    });
+  }, []);
 
   async function refreshCart() {
     const res = await api.cart();
@@ -82,8 +97,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
       openEditor: (id) => setEditorTarget(id),
       closeEditor: () => setEditorTarget(null),
+      applyLayout,
     }),
-    [boot, loading, contactOpen, contactExtra, cart, editMode, editorTarget],
+    [boot, loading, contactOpen, contactExtra, cart, editMode, editorTarget, refresh, applyLayout],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

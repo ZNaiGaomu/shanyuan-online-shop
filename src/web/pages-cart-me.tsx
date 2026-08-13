@@ -1,9 +1,49 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "./api";
 import { ShopChrome } from "./chrome";
 import { formatPrice, formatYuan, useStore } from "./store";
 import { FilePick } from "./upload";
+
+function QtyBox({ value, onCommit }: { value: number; onCommit: (qty: number) => void }) {
+  const [text, setText] = useState(String(value));
+  useEffect(() => {
+    setText(String(value));
+  }, [value]);
+
+  function commit() {
+    const n = Math.round(Number(text));
+    if (!Number.isFinite(n) || n < 1) {
+      setText(String(value));
+      return;
+    }
+    const qty = Math.min(999, n);
+    setText(String(qty));
+    if (qty !== value) onCommit(qty);
+  }
+
+  return (
+    <div className="stepper">
+      <button type="button" onClick={() => onCommit(Math.max(1, value - 1))}>
+        −
+      </button>
+      <input
+        className="qty-input"
+        inputMode="numeric"
+        value={text}
+        aria-label="数量"
+        onChange={(e) => setText(e.target.value.replace(/\D/g, "").slice(0, 3))}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+        }}
+      />
+      <button type="button" onClick={() => onCommit(Math.min(999, value + 1))}>
+        +
+      </button>
+    </div>
+  );
+}
 
 export function CartPage() {
   const { boot, cart, refreshCart, openContact } = useStore();
@@ -50,11 +90,11 @@ export function CartPage() {
               <div>
                 <div>{item.name}</div>
                 <div className="price">{formatPrice(item.amount, item.packQty, item.unit)}</div>
-                <div className="stepper">
-                  <button onClick={() => void change(item.id, item.qty - 1)}>−</button>
-                  <span>{item.qty}</span>
-                  <button onClick={() => void change(item.id, item.qty + 1)}>+</button>
-                  <button onClick={() => void remove(item.id)}>删除</button>
+                <div className="stepper-row">
+                  <QtyBox value={item.qty} onCommit={(qty) => void change(item.id, qty)} />
+                  <button type="button" className="btn btn-ghost" onClick={() => void remove(item.id)}>
+                    删除
+                  </button>
                 </div>
               </div>
             </div>
@@ -166,6 +206,7 @@ export function ProfilePage() {
   const nav = useNavigate();
   const me = boot?.me?.kind === "user" ? boot.me : null;
   const [username, setUsername] = useState(me?.username || "");
+  const [oldPassword, setOldPassword] = useState("");
   const [password, setPassword] = useState("");
   const [avatarKey, setAvatarKey] = useState("");
   const [avatarUrl, setAvatarUrl] = useState(me?.avatarUrl || "");
@@ -190,7 +231,10 @@ export function ProfilePage() {
     setOk("");
     const body: Record<string, string> = { username };
     if (avatarKey) body.avatarKey = avatarKey;
-    if (password) body.password = password;
+    if (password) {
+      body.oldPassword = oldPassword;
+      body.password = password;
+    }
     const res = await api.saveProfile(body);
     if (!res.ok) {
       setErr(res.error);
@@ -198,6 +242,7 @@ export function ProfilePage() {
     }
     setOk("已保存");
     setPassword("");
+    setOldPassword("");
     await refresh();
   }
 
@@ -220,6 +265,12 @@ export function ProfilePage() {
             <img src={avatarUrl} alt="" style={{ width: 72, height: 72, borderRadius: "50%", margin: "0 auto" }} />
           )}
           <input placeholder="用户名" value={username} onChange={(e) => setUsername(e.target.value)} />
+          <input
+            placeholder="旧密码（改密码时必填）"
+            type="password"
+            value={oldPassword}
+            onChange={(e) => setOldPassword(e.target.value)}
+          />
           <input
             placeholder="新密码（不改请留空）"
             type="password"

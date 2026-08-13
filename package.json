@@ -1,7 +1,7 @@
 {
   "name": "shanyuan-shop",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "scripts": {
     "predev": "node -e \"const fs=require('fs');fs.mkdirSync('dist',{recursive:true});if(!fs.existsSync('dist/index.html'))fs.writeFileSync('dist/index.html','<!doctype html><title>dev</title>');\"",

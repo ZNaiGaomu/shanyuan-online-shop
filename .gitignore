@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.dev.vars
+.wrangler/
+*.log
+.DS_Store
+Thumbs.db
+.env
+.env.*
+!.env.example
+!.dev.vars.example
+*.sqlite
+*.sqlite-journal
+*.zip
+release/
+.vscode/
+.idea/

@@ -1,0 +1,30 @@
+# 自己部署时复制为 wrangler.toml，再填入你的 Cloudflare 资源。
+name = "shanyuan-shop"
+main = "src/worker/index.ts"
+compatibility_date = "2026-08-13"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+[dev]
+ip = "127.0.0.1"
+port = 8788
+
+# 有自己的域名再打开下面两行，改成你的子域名。
+# [[routes]]
+# pattern = "shop.example.com"
+# custom_domain = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "shanyuan-shop-db"
+database_id = "YOUR_D1_DATABASE_ID"
+
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "shanyuan-shop-media"
+
+[assets]
+directory = "dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/*", "/media/*"]

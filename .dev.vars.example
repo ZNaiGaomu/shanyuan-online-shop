@@ -1,0 +1,4 @@
+# 不会提交到 Git。复制本文件为 `.dev.vars` 后改成你自己的值。
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=please-change-me
+ADMIN_SECRET=please-change-me-too

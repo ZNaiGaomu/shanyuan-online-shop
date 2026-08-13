@@ -1,0 +1,32 @@
+# 管理员口令不要写在本文件。本地用 .dev.vars，线上用：
+# npx wrangler secret put ADMIN_USERNAME
+# npx wrangler secret put ADMIN_PASSWORD
+# npx wrangler secret put ADMIN_SECRET
+name = "shanyuan-shop"
+main = "src/worker/index.ts"
+compatibility_date = "2026-08-13"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+[dev]
+ip = "127.0.0.1"
+port = 8788
+
+[[routes]]
+pattern = "shanyuan.gaomuxipian.com"
+custom_domain = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "shanyuan-shop-db"
+database_id = "ee21be17-6736-45a7-aa52-c84c2441bf34"
+
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "shanyuan-shop-media"
+
+[assets]
+directory = "dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/*", "/media/*"]

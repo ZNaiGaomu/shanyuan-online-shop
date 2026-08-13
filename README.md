@@ -2,10 +2,6 @@
 
 手机端商品展示站。顾客可以逛店、看详情；登录用户能把货放进购物车当询价清单；管理员负责上架、改价、改介绍。成交走电话 / 微信，网站里不收款。
 
-在线示例：https://shanyuan.gaomuxipian.com
-
-仓库：https://github.com/ZNaiGaomu/shanyuan-online-shop
-
 ---
 
 ## 三种入口

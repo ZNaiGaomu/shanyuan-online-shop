@@ -2,7 +2,7 @@
 
 手机端商品展示站。顾客可以逛店、看详情；登录用户能把货放进购物车当询价清单；管理员负责上架、改价、改介绍。成交走电话 / 微信，网站里不收款。
 
-当前版本 **1.1.0**。
+当前版本 **2.0.0**。这一版加上了安卓 App、活动条幅、上新/活动推送，以及登录态保存。
 
 ---
 
@@ -26,8 +26,9 @@
 - **分类**：四列宫格，点进去看该分类商品。
 - **详情**：多图 / 视频、名称、多条「金额 + 数量」报价、介绍、加入购物车。
 - **购物车**：登录用户的意向清单。数量可用 +/−，也可直接输入。游客会提示先登录。底部「联系商家」可带上清单。
-- **我的**：头像、用户名；订单五格是占位（点了会提示联系商家）；个人资料只有用户名、密码、头像；改密码需先填旧密码。
+- **我的**：头像、用户名；订单五格是占位（点了会提示联系商家）；个人资料只有用户名、密码、头像；改密码需先填旧密码。游客可点「返回登录」退出游客模式。
 - **客服**：任意页右上角「客」。电话、微信、二维码、地址、营业时间都由管理员在后台改。
+- **活动条幅**：管理员在后台「活动」里发布，展示在首页通知和视频之间，到点自动显示/消失。
 
 管理员登录后，后台有「进入用户视角摆货」，也可「退出登录」。打开「开始摆货」后，按住货品可在同一货架换位，拖到别的货架或上方分类可换分类（后台一起改）；也可直接改封面、名称、价格和介绍。
 
@@ -42,6 +43,7 @@
 - `package.json` / `package-lock.json`（别人可以按同样依赖装起来）
 - `wrangler.toml`（当前站点用的 Worker / D1 / R2 绑定）
 - `wrangler.example.toml`、`.dev.vars.example`（自己另内部署时用）
+- 安卓工程 `android/`、`capacitor.config.ts`、图标 `resources/`
 
 **不会上传**
 
@@ -49,6 +51,7 @@
 - `.dev.vars`、环境变量、管理员密码 / 密钥
 - `.wrangler/`（本地数据库、Cloudflare 登录缓存）
 - 图片视频等用户上传内容（在 Cloudflare R2 里，不在 Git）
+- 安卓签名密钥 `android/keystore/`、Firebase `google-services.json`、APK 安装包
 
 ---
 
@@ -133,6 +136,10 @@ npm run deploy
 | `npm run deploy` | 构建并发布到 Cloudflare |
 | `npm run db:local` | 初始化本地 D1 |
 | `npm run db:remote` | 初始化线上 D1 |
+| `npm run android:sync` | 构建前端并同步到安卓工程 |
+| `npm run android:apk` | 同步后打正式签名 APK（需本机已放好 keystore） |
+
+已登录顾客可在 App 里收到上新和活动推送。推送还需要 Firebase 服务账号（`FIREBASE_SERVICE_ACCOUNT`）和 `google-services.json`，这两项不进 Git。
 
 ---
 
@@ -140,8 +147,9 @@ npm run deploy
 
 ```
 src/web/        React 页面（入口、商城、购物车、我的、后台）
-src/worker/     Cloudflare Worker 接口（登录、商品、上传、购物车）
+src/worker/     Cloudflare Worker 接口（登录、商品、上传、购物车、推送）
 schema.sql      D1 表结构
+android/        Capacitor 安卓壳（打开线上站点）
 ```
 
 | 层 | 选择 |

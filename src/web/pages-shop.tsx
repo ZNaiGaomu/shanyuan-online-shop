@@ -98,9 +98,12 @@ function Banner({ urls }: { urls: string[] }) {
 }
 
 export function HomePage() {
-  const { boot, editMode, openEditor } = useStore();
+  const { boot, editMode, openEditor, refresh } = useStore();
   const nav = useNavigate();
   const arrange = useArrange();
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
   if (!boot)
     return (
       <ShopChrome>
@@ -121,6 +124,12 @@ export function HomePage() {
       <Banner urls={boot.banners.map((b) => b.imageUrl).filter((u): u is string => !!u)} />
       <div className="notice">— 通知 —</div>
       {boot.shop.notice && <div className="notice-card">{boot.shop.notice}</div>}
+      {(boot.activities ?? []).map((item) => (
+        <div className="activity-banner" key={item.id}>
+          <span className="tag">活动</span>
+          <p>{item.body}</p>
+        </div>
+      ))}
       {boot.shop.shopVideoUrl && (
         <div className="shop-video">
           <video src={boot.shop.shopVideoUrl} controls playsInline />

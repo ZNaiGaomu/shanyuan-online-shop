@@ -78,4 +78,13 @@ export const api = {
     password?: string;
     secret?: string;
   }) => request<void>("/api/admin/account", { method: "PUT", body: JSON.stringify(body) }),
+  savePushToken: (token: string) =>
+    request<void>("/api/auth/push-token", { method: "POST", body: JSON.stringify({ token, platform: "android" }) }),
+  delPushToken: (token: string) =>
+    request<void>("/api/auth/push-token", { method: "DELETE", body: JSON.stringify({ token }) }),
+  activities: () =>
+    request<{ id: number; body: string; startAt: string; endAt: string; createdAt: string }[]>("/api/admin/activities"),
+  addActivity: (body: string, startAt: string, endAt: string) =>
+    request<void>("/api/admin/activities", { method: "POST", body: JSON.stringify({ body, startAt, endAt }) }),
+  delActivity: (id: number) => request<void>(`/api/admin/activities/${id}`, { method: "DELETE" }),
 };

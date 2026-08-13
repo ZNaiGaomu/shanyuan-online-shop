@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { api } from "./api";
+import { syncPush } from "./native";
 import type { Bootstrap, CartItem, EditorTarget, Product } from "./types";
 
 const EDIT_KEY = "sy_edit";
@@ -66,6 +67,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (boot?.me?.kind === "user") void refreshCart();
     else setCart([]);
+    void syncPush(boot?.me?.kind === "user");
   }, [boot?.me?.kind]);
 
   useEffect(() => {

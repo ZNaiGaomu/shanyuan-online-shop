@@ -3,12 +3,16 @@ import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { api } from "./api";
 import { ProductEditorForm } from "./product-editor";
 import { enterShopAsAdmin, formatPrice, useStore } from "./store";
+import { syncNativeChrome } from "./native";
 import type { Category } from "./types";
 import { FilePick } from "./upload";
 
 function AdminShell({ children, tab }: { children: ReactNode; tab: string }) {
   const { boot, loading, setEditMode, refresh } = useStore();
   const nav = useNavigate();
+  useEffect(() => {
+    void syncNativeChrome(false);
+  }, []);
   if (loading)
     return (
       <div className="app-shell">
@@ -17,9 +21,10 @@ function AdminShell({ children, tab }: { children: ReactNode; tab: string }) {
     );
   if (boot?.me?.kind !== "admin") return <Navigate to="/login/admin" replace />;
 
-  function goLive(edit: boolean) {
+  async function goLive(edit: boolean) {
     enterShopAsAdmin(edit);
     setEditMode(edit);
+    await refresh();
     nav("/shop");
   }
 
@@ -39,12 +44,12 @@ function AdminShell({ children, tab }: { children: ReactNode; tab: string }) {
             退出登录
           </button>
         </div>
-        <button className="icon-btn" title="用户视角" onClick={() => goLive(true)}>
+        <button className="icon-btn" title="用户视角" onClick={() => void goLive(true)}>
           看
         </button>
       </header>
       <div className="live-jump">
-        <button className="btn btn-gold" onClick={() => goLive(true)}>
+        <button className="btn btn-gold" onClick={() => void goLive(true)}>
           进入用户视角摆货
         </button>
         <p className="muted">到商城页直接改封面、名称、价格和介绍，看到的就是顾客看到的。</p>
@@ -64,6 +69,9 @@ function AdminShell({ children, tab }: { children: ReactNode; tab: string }) {
         </Link>
         <Link className={tab === "users" ? "on" : ""} to="/admin/users">
           客户
+        </Link>
+        <Link className={tab === "activity" ? "on" : ""} to="/admin/activity">
+          活动
         </Link>
         <Link className={tab === "account" ? "on" : ""} to="/admin/account">
           账号
@@ -467,6 +475,85 @@ export function AdminAccountPage() {
           保存账号
         </button>
       </div>
+    </AdminShell>
+  );
+}
+
+function pad(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+function toLocalInput(d: Date) {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function fmtRange(startAt: string, endAt: string) {
+  const a = new Date(startAt);
+  const b = new Date(endAt);
+  const show = (d: Date) =>
+    `${d.getMonth() + 1}月${d.getDate()}日 ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${show(a)} 至 ${show(b)}`;
+}
+
+export function AdminActivityPage() {
+  const { refresh } = useStore();
+  const [body, setBody] = useState("");
+  const [startAt, setStartAt] = useState(() => toLocalInput(new Date()));
+  const [endAt, setEndAt] = useState(() => toLocalInput(new Date(Date.now() + 7 * 24 * 3600 * 1000)));
+  const [list, setList] = useState<{ id: number; body: string; startAt: string; endAt: string }[]>([]);
+  const [msg, setMsg] = useState("");
+
+  async function load() {
+    const res = await api.activities();
+    if (res.ok) setList(res.data);
+  }
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  async function publish() {
+    const res = await api.addActivity(body.trim(), new Date(startAt).toISOString(), new Date(endAt).toISOString());
+    setMsg(res.ok ? "已发布。时段内会出现在首页条幅，已登录 App 的顾客会收到推送。" : res.error);
+    if (res.ok) {
+      setBody("");
+      await load();
+      await refresh();
+    }
+  }
+
+  return (
+    <AdminShell tab="activity">
+      <p className="muted">活动条幅出现在首页「通知」和视频之间。到点自动显示，过期自动消失。发布时会推送给已登录的 App 顾客。</p>
+      <div className="form">
+        <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="活动内容，例如：本周六批发满 200 减 20，现场可看货" />
+        <label className="muted">开始时间</label>
+        <input type="datetime-local" value={startAt} onChange={(e) => setStartAt(e.target.value)} />
+        <label className="muted">结束时间</label>
+        <input type="datetime-local" value={endAt} onChange={(e) => setEndAt(e.target.value)} />
+        <button className="btn btn-gold" onClick={() => void publish()}>
+          发布活动通知
+        </button>
+        <div className="hint">{msg}</div>
+      </div>
+      <h3>已发布</h3>
+      {list.map((item) => {
+        const now = Date.now();
+        const on = Date.parse(item.startAt) <= now && now <= Date.parse(item.endAt);
+        return (
+          <div className="admin-card" key={item.id}>
+            <div>{item.body}</div>
+            <div className="muted" style={{ marginTop: 6 }}>
+              {on ? "展示中 · " : Date.parse(item.startAt) > now ? "未开始 · " : "已结束 · "}
+              {fmtRange(item.startAt, item.endAt)}
+            </div>
+            <button className="btn btn-ghost" style={{ marginTop: 8 }} onClick={() => void api.delActivity(item.id).then(() => load())}>
+              删除
+            </button>
+          </div>
+        );
+      })}
+      {!list.length && <p className="muted">还没有活动通知</p>}
     </AdminShell>
   );
 }

@@ -71,6 +71,34 @@ userRoutes.post("/logout", async (c) => {
   return c.json({ ok: true });
 });
 
+userRoutes.post("/push-token", async (c) => {
+  const session = await requireUser(c);
+  if (isResponse(session)) return session;
+  const body = await readBody<{ token?: string; platform?: string }>(c);
+  const token = (body.token || "").trim();
+  if (token.length < 20 || token.length > 4096) return c.json({ ok: false, error: "通知令牌无效" }, 400);
+  await c.env.DB
+    .prepare(
+      `INSERT INTO push_devices (token, user_id, platform, updated_at)
+       VALUES (?, ?, ?, datetime('now'))
+       ON CONFLICT(token) DO UPDATE SET user_id = excluded.user_id, platform = excluded.platform, updated_at = excluded.updated_at`,
+    )
+    .bind(token, session.user_id, body.platform === "ios" ? "ios" : "android")
+    .run();
+  return c.json({ ok: true });
+});
+
+userRoutes.delete("/push-token", async (c) => {
+  const session = await requireUser(c);
+  if (isResponse(session)) return session;
+  const body = await readBody<{ token?: string }>(c);
+  const token = (body.token || "").trim();
+  if (token) {
+    await c.env.DB.prepare("DELETE FROM push_devices WHERE token = ? AND user_id = ?").bind(token, session.user_id).run();
+  }
+  return c.json({ ok: true });
+});
+
 userRoutes.post("/profile", async (c) => {
   const session = await requireUser(c);
   if (isResponse(session)) return session;

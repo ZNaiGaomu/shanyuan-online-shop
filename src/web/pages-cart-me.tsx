@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "./api";
 import { ShopChrome } from "./chrome";
+import { isNativeApp, syncPush } from "./native";
 import { formatPrice, formatYuan, useStore } from "./store";
 import { FilePick } from "./upload";
 
@@ -143,8 +144,8 @@ export function MePage() {
             <p>可进入用户视角摆货</p>
           ) : (
             <p>
-              <Link to="/login/user" style={{ color: "#fff" }}>
-                请先登录 ›
+              <Link to="/" style={{ color: "#fff" }}>
+                游客模式 · 返回登录 ›
               </Link>
             </p>
           )}
@@ -177,12 +178,30 @@ export function MePage() {
               管理后台
             </Link>
           )}
+          {!isNativeApp() && (
+            <a href="/app/shanyuan.apk" download="善愿.apk">
+              <div className="dot-icon">↓</div>
+              下载安卓 App
+            </a>
+          )}
+          {!me && (
+            <button type="button" onClick={() => nav("/")}>
+              <div className="dot-icon">↩</div>
+              返回登录
+            </button>
+          )}
         </div>
+        {!me && (
+          <button className="btn btn-ghost btn-block" style={{ marginTop: 24 }} onClick={() => nav("/")}>
+            返回登录
+          </button>
+        )}
         {me && (
           <button
             className="btn btn-ghost btn-block"
             style={{ marginTop: 24 }}
             onClick={async () => {
+              await syncPush(false);
               await api.logout();
               await refresh();
               nav("/");

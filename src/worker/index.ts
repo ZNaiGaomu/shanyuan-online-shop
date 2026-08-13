@@ -21,6 +21,19 @@ app.route("/api/auth", userRoutes);
 app.route("/api/admin", adminRoutes);
 app.route("/api/upload", uploadRoutes);
 
+app.get("/app/shanyuan.apk", async (c) => {
+  if (!c.env.MEDIA) return c.notFound();
+  const object = await c.env.MEDIA.get("app/shanyuan.apk");
+  if (!object) return c.json({ ok: false, error: "安装包还没上传" }, 404);
+  return new Response(object.body, {
+    headers: {
+      "content-type": "application/vnd.android.package-archive",
+      "content-disposition": 'attachment; filename="shanyuan.apk"',
+      "cache-control": "public, max-age=300",
+    },
+  });
+});
+
 app.get("/media/:key{.+}", async (c) => {
   const key = decodeURIComponent(c.req.param("key"));
   if (!c.env.MEDIA) return c.notFound();
@@ -36,7 +49,7 @@ app.get("/media/:key{.+}", async (c) => {
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
-    if (url.pathname.startsWith("/api") || url.pathname.startsWith("/media/")) {
+    if (url.pathname.startsWith("/api") || url.pathname.startsWith("/media/") || url.pathname.startsWith("/app/")) {
       return app.fetch(request, env, ctx);
     }
     return env.ASSETS.fetch(request);

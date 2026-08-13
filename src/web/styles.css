@@ -13,7 +13,9 @@
   --white: #fffcf7;
   --shadow: 0 10px 30px rgba(80, 48, 18, 0.08);
   --radius: 16px;
-  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --safe-b: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+  --tab-h: 50px;
   font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
   color: var(--ink);
   background: var(--paper);
@@ -37,18 +39,25 @@ img, video { max-width: 100%; display: block; }
 }
 
 .page {
-  padding: 14px 14px 88px;
+  padding: 10px 12px calc(var(--tab-h) + var(--safe-b) + 12px);
+}
+.app-shell > .page:first-child {
+  padding-top: calc(10px + var(--safe-t));
 }
 
 .topbar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px 6px;
+  gap: 8px;
+  padding: 6px 12px 4px;
   background: var(--white);
   position: sticky;
   top: 0;
   z-index: 8;
+}
+.app-shell > .topbar:first-child,
+.app-shell:not(:has(.live-bar)) > .topbar {
+  padding-top: calc(6px + var(--safe-t));
 }
 
 .brand {
@@ -60,8 +69,8 @@ img, video { max-width: 100%; display: block; }
 }
 
 .brand-mark, .avatar {
-  width: 38px;
-  height: 38px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   object-fit: cover;
   background: linear-gradient(145deg, #f3d9a0, #c23a2b);
@@ -71,16 +80,17 @@ img, video { max-width: 100%; display: block; }
   font-family: "Noto Serif SC", serif;
   font-weight: 700;
   flex-shrink: 0;
+  font-size: 13px;
 }
 
 .brand h1 {
   margin: 0;
   font-family: "Noto Serif SC", serif;
-  font-size: 15px;
-  letter-spacing: 0.04em;
-  line-height: 1.25;
+  font-size: 14px;
+  letter-spacing: 0.03em;
+  line-height: 1.2;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
   flex: 1;
@@ -101,24 +111,24 @@ img, video { max-width: 100%; display: block; }
 .icon-btn {
   border: 0;
   background: #f4ebe0;
-  width: 38px;
-  height: 38px;
-  border-radius: 19px;
+  width: 32px;
+  height: 32px;
+  border-radius: 16px;
   display: grid;
   place-items: center;
   color: var(--cinnabar);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
 }
 
 .search {
-  margin: 6px 14px 10px;
+  margin: 4px 12px 8px;
   background: #f3eee6;
   border-radius: 999px;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 14px;
+  padding: 7px 12px;
   color: var(--ink-soft);
 }
 
@@ -130,8 +140,8 @@ img, video { max-width: 100%; display: block; }
 }
 
 .hero, .shop-video, .notice-card {
-  margin: 0 14px 14px;
-  border-radius: var(--radius);
+  margin: 0 12px 10px;
+  border-radius: 12px;
   overflow: hidden;
   background: #111;
 }
@@ -168,10 +178,39 @@ img, video { max-width: 100%; display: block; }
 .notice-card {
   background: #fff8ee;
   border: 1px solid var(--line);
-  padding: 12px 14px;
+  padding: 10px 12px;
   color: var(--ink-soft);
-  line-height: 1.6;
-  font-size: 14px;
+  line-height: 1.55;
+  font-size: 13px;
+}
+
+.activity-banner {
+  margin: 0 12px 10px;
+  background: linear-gradient(90deg, #fff4ea, #ffe6d2);
+  border: 1px solid #f0cbb0;
+  border-left: 4px solid var(--cinnabar);
+  border-radius: 10px;
+  padding: 8px 10px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.activity-banner .tag {
+  flex-shrink: 0;
+  background: var(--cinnabar);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.06em;
+}
+.activity-banner p {
+  margin: 0;
+  color: #7a2c1c;
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 600;
 }
 
 .shop-video video { width: 100%; background: #000; }
@@ -256,6 +295,7 @@ img, video { max-width: 100%; display: block; }
   transform: translateX(-50%);
   bottom: 0;
   width: min(520px, 100%);
+  height: calc(var(--tab-h) + var(--safe-b));
   background: #fff;
   border-top: 1px solid var(--line);
   display: grid;
@@ -265,17 +305,18 @@ img, video { max-width: 100%; display: block; }
 }
 
 .tabbar a {
-  padding: 8px 0 6px;
+  padding: 5px 0 3px;
   text-align: center;
   color: #8a8176;
-  font-size: 11px;
+  font-size: 10px;
   display: grid;
   justify-items: center;
-  gap: 2px;
+  align-content: center;
+  gap: 1px;
 }
 
 .tabbar a.on { color: var(--tab); }
-.tabbar svg { width: 24px; height: 24px; }
+.tabbar svg { width: 20px; height: 20px; }
 
 .media-swiper {
   background: #111;
@@ -297,7 +338,7 @@ img, video { max-width: 100%; display: block; }
   font-size: 12px;
 }
 
-.detail { padding-bottom: 96px; }
+.detail { padding-bottom: calc(58px + var(--safe-b)); }
 .detail-body { padding: 14px; }
 .detail-body h2 {
   margin: 0 0 8px;
@@ -330,7 +371,7 @@ img, video { max-width: 100%; display: block; }
   width: min(520px, 100%);
   background: #fff;
   border-top: 1px solid var(--line);
-  padding: 10px 14px calc(10px + var(--safe-b));
+  padding: 8px 12px calc(8px + var(--safe-b));
   display: flex;
   gap: 10px;
   z-index: 15;
@@ -407,7 +448,7 @@ img, video { max-width: 100%; display: block; }
   position: fixed;
   left: 50%;
   transform: translateX(-50%);
-  bottom: 58px;
+  bottom: calc(var(--tab-h) + var(--safe-b));
   width: min(520px, 100%);
   background: #fff;
   border-top: 1px solid var(--line);
@@ -422,7 +463,7 @@ img, video { max-width: 100%; display: block; }
 .me-head {
   background: linear-gradient(135deg, #c9a05a, #8f6a32);
   color: #fff;
-  padding: 22px 16px 18px;
+  padding: 14px 14px 12px;
   display: flex;
   gap: 12px;
   align-items: center;
@@ -475,7 +516,7 @@ img, video { max-width: 100%; display: block; }
 
 .gate {
   min-height: 100dvh;
-  padding: 48px 24px 32px;
+  padding: calc(28px + var(--safe-t)) 24px calc(16px + var(--safe-b));
   background:
     radial-gradient(circle at 20% 10%, #f7d9a8 0%, transparent 36%),
     linear-gradient(180deg, #3b1d14 0%, #7a2c1c 42%, #c23a2b 100%);
@@ -528,7 +569,7 @@ img, video { max-width: 100%; display: block; }
   display: flex;
   gap: 8px;
   overflow: auto;
-  padding: 8px 14px;
+  padding: 6px 12px;
   position: sticky;
   top: 0;
   background: var(--white);
@@ -570,8 +611,8 @@ img, video { max-width: 100%; display: block; }
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: 6px;
+  padding: calc(6px + var(--safe-t)) 12px 6px;
   background: #3b1d14;
   color: #fff8ea;
   font-size: 12px;

@@ -3,6 +3,7 @@ import type { Context } from "hono";
 import { ensureAdminCreds, updateAdminCreds, verifyAdminLogin } from "./admin-creds";
 import { isResponse, requireAdmin } from "./auth";
 import { hashPassword } from "./crypto";
+import { notifyActivity, notifyProductOnSale } from "./push";
 import { toCents } from "./serialize";
 import type { Env } from "./types";
 
@@ -137,6 +138,9 @@ adminRoutes.post("/products", async (c) => {
     .run();
   const productId = Number(result.meta.last_row_id);
   await saveChildren(c.env.DB, productId, body.prices!, body.media || []);
+  if (body.onSale !== false) {
+    c.executionCtx.waitUntil(notifyProductOnSale(c.env, productId, body.name!.trim()));
+  }
   return c.json({ ok: true, data: { id: productId } });
 });
 
@@ -169,7 +173,10 @@ adminRoutes.put("/layout", async (c) => {
 
 adminRoutes.put("/products/:id", async (c) => {
   const id = Number(c.req.param("id"));
-  const exists = await c.env.DB.prepare("SELECT id FROM products WHERE id = ?").bind(id).first();
+  const exists = await c.env.DB.prepare("SELECT id, on_sale FROM products WHERE id = ?").bind(id).first<{
+    id: number;
+    on_sale: number;
+  }>();
   if (!exists) return c.json({ ok: false, error: "商品不存在" }, 404);
   const body = await readBody<{
     name?: string;
@@ -183,6 +190,7 @@ adminRoutes.put("/products/:id", async (c) => {
   }>(c);
   const error = validateProduct(body);
   if (error) return c.json({ ok: false, error }, 400);
+  const onSale = body.onSale === false ? 0 : 1;
   await c.env.DB
     .prepare(
       "UPDATE products SET category_id = ?, name = ?, cover_key = ?, intro = ?, on_sale = ?, sort = ? WHERE id = ?",
@@ -192,7 +200,7 @@ adminRoutes.put("/products/:id", async (c) => {
       body.name!.trim(),
       body.coverKey,
       body.intro || "",
-      body.onSale === false ? 0 : 1,
+      onSale,
       Number(body.sort) || 0,
       id,
     )
@@ -200,6 +208,9 @@ adminRoutes.put("/products/:id", async (c) => {
   await c.env.DB.prepare("DELETE FROM product_prices WHERE product_id = ?").bind(id).run();
   await c.env.DB.prepare("DELETE FROM product_media WHERE product_id = ?").bind(id).run();
   await saveChildren(c.env.DB, id, body.prices!, body.media || []);
+  if (onSale === 1 && Number(exists.on_sale) !== 1) {
+    c.executionCtx.waitUntil(notifyProductOnSale(c.env, id, body.name!.trim()));
+  }
   return c.json({ ok: true });
 });
 
@@ -326,6 +337,53 @@ adminRoutes.get("/users/:id/cart", async (c) => {
       unit: row.unit,
     })),
   });
+});
+
+function parseActivityWindow(startAt?: string, endAt?: string) {
+  const start = Date.parse(startAt || "");
+  const end = Date.parse(endAt || "");
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return { error: "请填写开始和结束时间" };
+  if (end <= start) return { error: "结束时间要晚于开始时间" };
+  if (end - start > 90 * 24 * 3600 * 1000) return { error: "一次活动最长 90 天" };
+  return { start: new Date(start).toISOString(), end: new Date(end).toISOString() };
+}
+
+adminRoutes.get("/activities", async (c) => {
+  const rows = await c.env.DB
+    .prepare("SELECT * FROM activity_notices ORDER BY id DESC LIMIT 40")
+    .all<{ id: number; body: string; start_at: string; end_at: string; created_at: string }>();
+  return c.json({
+    ok: true,
+    data: (rows.results ?? []).map((row) => ({
+      id: row.id,
+      body: row.body,
+      startAt: row.start_at,
+      endAt: row.end_at,
+      createdAt: row.created_at,
+    })),
+  });
+});
+
+adminRoutes.post("/activities", async (c) => {
+  const body = await readBody<{ body?: string; startAt?: string; endAt?: string }>(c);
+  const text = (body.body || "").trim();
+  if (!text) return c.json({ ok: false, error: "请填写活动内容" }, 400);
+  if (text.length > 200) return c.json({ ok: false, error: "活动内容不超过 200 字" }, 400);
+  const window = parseActivityWindow(body.startAt, body.endAt);
+  if ("error" in window) return c.json({ ok: false, error: window.error }, 400);
+  const start = window.start;
+  const end = window.end;
+  await c.env.DB
+    .prepare("INSERT INTO activity_notices (body, start_at, end_at) VALUES (?, ?, ?)")
+    .bind(text, start, end)
+    .run();
+  c.executionCtx.waitUntil(notifyActivity(c.env, text));
+  return c.json({ ok: true });
+});
+
+adminRoutes.delete("/activities/:id", async (c) => {
+  await c.env.DB.prepare("DELETE FROM activity_notices WHERE id = ?").bind(Number(c.req.param("id"))).run();
+  return c.json({ ok: true });
 });
 
 function validateProduct(body: {

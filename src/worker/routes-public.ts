@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { isResponse, readSession, requireUser } from "./auth";
+import { isResponse, readSession, requireUser, touchSession } from "./auth";
 import { ensureAdminCreds } from "./admin-creds";
 import {
   mapConfig,
@@ -38,7 +38,22 @@ async function pricesFor(db: D1Database, productIds: number[]) {
 
 publicRoutes.get("/bootstrap", async (c) => {
   const session = await readSession(c);
+  if (session) await touchSession(c);
   const preview = session?.kind === "admin";
+  const nowIso = new Date().toISOString();
+  const activities = preview
+    ? await c.env.DB
+        .prepare(
+          "SELECT id, body, start_at, end_at FROM activity_notices WHERE end_at >= ? ORDER BY id DESC LIMIT 8",
+        )
+        .bind(nowIso)
+        .all<{ id: number; body: string; start_at: string; end_at: string }>()
+    : await c.env.DB
+        .prepare(
+          "SELECT id, body, start_at, end_at FROM activity_notices WHERE start_at <= ? AND end_at >= ? ORDER BY id DESC LIMIT 5",
+        )
+        .bind(nowIso, nowIso)
+        .all<{ id: number; body: string; start_at: string; end_at: string }>();
   const cfg = await loadConfig(c.env.DB, c.env);
   const banners = await c.env.DB.prepare("SELECT * FROM banners ORDER BY sort ASC, id ASC").all<BannerRow>();
   const categories = await c.env.DB
@@ -94,6 +109,12 @@ publicRoutes.get("/bootstrap", async (c) => {
       products: (products.results ?? []).map((p) => publicProduct(p, priceMap.get(p.id) ?? [])),
       me,
       preview,
+      activities: (activities.results ?? []).map((row) => ({
+        id: row.id,
+        body: row.body,
+        startAt: row.start_at,
+        endAt: row.end_at,
+      })),
     },
   });
 });

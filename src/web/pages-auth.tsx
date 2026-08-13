@@ -1,12 +1,18 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { api } from "./api";
 import { enterShopAsAdmin, useStore } from "./store";
+import { syncNativeChrome } from "./native";
 
 export function GatePage() {
-  const { boot } = useStore();
+  const { boot, loading } = useStore();
   const name = boot?.shop.shopName || "善愿日用品店（零售/批发）";
   const address = boot?.shop.contact.address || "商丘市宁陵县雷华上府北门商铺最西边第二家";
+  useEffect(() => {
+    void syncNativeChrome(true);
+  }, []);
+  if (!loading && boot?.me?.kind === "admin") return <Navigate to="/admin" replace />;
+  if (!loading && boot?.me?.kind === "user") return <Navigate to="/shop" replace />;
   return (
     <div className="gate">
       <div className="gate-seal">善</div>
@@ -45,6 +51,10 @@ function AuthForm({ mode }: { mode: "user" | "admin" }) {
   const [reg, setReg] = useState(false);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    void syncNativeChrome(false);
+  }, []);
 
   async function submit() {
     setBusy(true);

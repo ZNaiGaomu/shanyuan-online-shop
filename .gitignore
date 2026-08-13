@@ -15,3 +15,14 @@ Thumbs.db
 release/
 .vscode/
 .idea/
+android/app/google-services.json
+android/keystore/
+android/local.properties
+android/.gradle/
+android/app/build/
+android/build/
+android/captures/
+.tmp-gradle/
+*.jks
+*.keystore
+google-services.json

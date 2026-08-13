@@ -58,6 +58,14 @@ export type Bootstrap = {
   products: Product[];
   me: Me | null;
   preview: boolean;
+  activities: ActivityNotice[];
+};
+
+export type ActivityNotice = {
+  id: number;
+  body: string;
+  startAt: string;
+  endAt: string;
 };
 
 export type CartItem = {

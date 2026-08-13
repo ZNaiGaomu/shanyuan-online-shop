@@ -1,7 +1,7 @@
 {
   "name": "shanyuan-shop",
   "private": true,
-  "version": "1.1.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "predev": "node -e \"const fs=require('fs');fs.mkdirSync('dist',{recursive:true});if(!fs.existsSync('dist/index.html'))fs.writeFileSync('dist/index.html','<!doctype html><title>dev</title>');\"",
@@ -10,10 +10,19 @@
     "dev:api": "wrangler dev --port 8788",
     "build": "vite build",
     "deploy": "vite build && wrangler deploy",
+    "android:sync": "npm run build && npx cap sync android",
+    "android:apk": "npm run android:sync && cd android && gradlew.bat assembleRelease",
     "db:local": "wrangler d1 execute shanyuan-shop-db --local --file=./schema.sql",
     "db:remote": "wrangler d1 execute shanyuan-shop-db --remote --file=./schema.sql"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/cli": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/push-notifications": "^8.1.2",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.3",
     "hono": "^4.9.8",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",

@@ -1,10 +1,11 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
-import { AdminAccountPage, AdminCatsPage, AdminContactPage, AdminProductEditPage, AdminProductsPage, AdminShopPage, AdminUsersPage } from "./pages-admin";
+import { AdminAccountPage, AdminActivityPage, AdminCatsPage, AdminContactPage, AdminProductEditPage, AdminProductsPage, AdminShopPage, AdminUsersPage } from "./pages-admin";
 import { AdminLoginPage, GatePage, UserLoginPage } from "./pages-auth";
 import { CartPage, MePage, ProfilePage } from "./pages-cart-me";
 import { CatListPage, CatsPage, DetailPage, HomePage, SearchPage } from "./pages-shop";
+import { initNativeShell } from "./native";
 import { StoreProvider } from "./store";
 import "./styles.css";
 
@@ -30,6 +31,7 @@ function App() {
           <Route path="/admin/products" element={<AdminProductsPage />} />
           <Route path="/admin/products/:id" element={<AdminProductEditPage />} />
           <Route path="/admin/users" element={<AdminUsersPage />} />
+          <Route path="/admin/activity" element={<AdminActivityPage />} />
           <Route path="/admin/account" element={<AdminAccountPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
@@ -37,6 +39,8 @@ function App() {
     </StoreProvider>
   );
 }
+
+void initNativeShell();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

@@ -5,6 +5,7 @@ export type Env = {
   ADMIN_USERNAME?: string;
   ADMIN_PASSWORD?: string;
   ADMIN_SECRET?: string;
+  FIREBASE_SERVICE_ACCOUNT?: string;
 };
 
 export type SessionKind = "user" | "admin";
@@ -75,4 +76,12 @@ export type CartRow = {
   product_id: number;
   price_id: number;
   qty: number;
+};
+
+export type ActivityNoticeRow = {
+  id: number;
+  body: string;
+  start_at: string;
+  end_at: string;
+  created_at: string;
 };

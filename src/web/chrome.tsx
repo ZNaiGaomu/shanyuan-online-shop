@@ -1,6 +1,7 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { ProductEditorSheet } from "./product-editor";
+import { syncNativeChrome } from "./native";
 import { enterShopAsAdmin, useStore } from "./store";
 
 export function TabBar() {
@@ -120,6 +121,9 @@ export function LiveBar() {
 export function ShopChrome({ children, title }: { children: ReactNode; title?: string }) {
   const { boot, openContact } = useStore();
   const name = boot?.shop.shopName || "善愿日用品店（零售/批发）";
+  useEffect(() => {
+    void syncNativeChrome(boot?.me?.kind === "admin");
+  }, [boot?.me?.kind]);
   return (
     <div className="app-shell">
       <LiveBar />

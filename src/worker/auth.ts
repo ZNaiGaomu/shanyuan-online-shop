@@ -3,7 +3,23 @@ import type { Context } from "hono";
 import type { Env, Session } from "./types";
 
 const COOKIE = "sy_session";
-const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+const SESSION_MS = 180 * 24 * 60 * 60 * 1000;
+
+function expiryUtc() {
+  return new Date(Date.now() + SESSION_MS).toISOString().slice(0, 19).replace("T", " ");
+}
+
+function cookieOpts(c: Context<{ Bindings: Env }>) {
+  const secure = new URL(c.req.url).protocol === "https:";
+  return {
+    path: "/",
+    httpOnly: true,
+    sameSite: "Lax" as const,
+    secure,
+    maxAge: Math.floor(SESSION_MS / 1000),
+    expires: new Date(Date.now() + SESSION_MS),
+  };
+}
 
 export async function readSession(c: Context<{ Bindings: Env }>): Promise<Session | null> {
   const token = getCookie(c, COOKIE);
@@ -38,20 +54,24 @@ export async function createSession(
   kind: Session["kind"],
   userId: number | null,
 ): Promise<void> {
-  const expires = new Date(Date.now() + WEEK_MS).toISOString().slice(0, 19).replace("T", " ");
   await c.env.DB.prepare(
     "INSERT INTO sessions (token, kind, user_id, expires_at) VALUES (?, ?, ?, ?)",
   )
-    .bind(token, kind, userId, expires)
+    .bind(token, kind, userId, expiryUtc())
     .run();
-  const secure = new URL(c.req.url).protocol === "https:";
-  setCookie(c, COOKIE, token, {
-    path: "/",
-    httpOnly: true,
-    sameSite: "Lax",
-    secure,
-    maxAge: WEEK_MS / 1000,
-  });
+  setCookie(c, COOKIE, token, cookieOpts(c));
+}
+
+export async function touchSession(c: Context<{ Bindings: Env }>): Promise<void> {
+  const token = getCookie(c, COOKIE);
+  if (!token) return;
+  const row = await c.env.DB
+    .prepare("SELECT token FROM sessions WHERE token = ? AND expires_at > datetime('now')")
+    .bind(token)
+    .first();
+  if (!row) return;
+  await c.env.DB.prepare("UPDATE sessions SET expires_at = ? WHERE token = ?").bind(expiryUtc(), token).run();
+  setCookie(c, COOKIE, token, cookieOpts(c));
 }
 
 export async function clearSession(c: Context<{ Bindings: Env }>): Promise<void> {
